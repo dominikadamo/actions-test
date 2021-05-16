@@ -3,6 +3,7 @@ name: Deploy
 env:
   DIR_WWW_PROD: /var/www/dominik.codeshape.de/prod
   DIR_WWW_STAGE: /var/www/dominik.codeshape.de/stage
+  DIR_BACKUPS: /var/www/dominik.codeshape.de/backups
 
 on:
   push:
@@ -40,7 +41,7 @@ jobs:
         env:
           MATRIX_CONTEXT: ${{ toJSON(matrix) }}
         run: echo "$MATRIX_CONTEXT"
-      
+
   build:
 
     runs-on: self-hosted
@@ -108,15 +109,17 @@ jobs:
     needs: [env_stage,env_prod]
     if: always()
     steps:
+      - name: Set backup filename
+        run: echo '::set-output name=FILENAME::${{ env.DIR_BACKUPS }}/`date +"%y-%m-%d"`.tar.gz'
+        id: archive-filename
+      - if: ${{ github.ref == 'refs/heads/dev' }}
+        name: Make archive
+        run: tar zcvf ${{ steps.archive-filename.outputs.FILENAME }} ${{ env.DIR_WWW_STAGE }}
+      - if: ${{ github.ref == 'refs/heads/master' }}
+        name: Make archive
+        run: tar zcvf ${{ steps.archive-filename.outputs.FILENAME }} ${{ env.DIR_WWW_PROD }}
       - uses: actions/upload-artifact@v2
-        if: ${{ github.ref == 'refs/heads/dev' }}
         with:
           name: 'build'
-          path: ${{ env.DIR_WWW_STAGE }}
-        name: Upload artifact
-      - uses: actions/upload-artifact@v2
-        if: ${{ github.ref == 'refs/heads/master' }}
-        with:
-          name: 'build'
-          path: ${{ env.DIR_WWW_PROD }}
+          path: ${{ steps.archive-filename.outputs.FILENAME }}
         name: Upload artifact
