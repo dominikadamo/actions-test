@@ -29,7 +29,7 @@ jobs:
     steps:
       - name: Copy files
         working-directory: build
-        run: cp -r . ${{ DIR_WWW_PROD }}
+        run: cp -r . ${{ env.DIR_WWW_PROD }}
       - name: Check pwd
         run: pwd
 
@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: Copy files
         working-directory: build
-        run: cp -r . ${{ DIR_WWW_STAGE }}
+        run: cp -r . ${{ env.DIR_WWW_STAGE }}
       - name: Check pwd
         run: pwd
 
@@ -51,7 +51,7 @@ jobs:
     needs: [deploy_prod]
     steps:
       - name: Create env file
-        working-directory: ${{ DIR_WWW_PROD }}
+        working-directory: ${{ env.DIR_WWW_PROD }}
         run: |
           touch .env
           echo NODE_ENV=prod >> .env
@@ -63,7 +63,7 @@ jobs:
     needs: [deploy_stage]
     steps:
       - name: Create env file
-        working-directory: ${{ DIR_WWW_STAGE }}
+        working-directory: ${{ env.DIR_WWW_STAGE }}
         run: |
           touch .env
           echo NODE_ENV=prod >> .env
