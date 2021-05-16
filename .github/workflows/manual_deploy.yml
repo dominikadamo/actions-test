@@ -1,12 +1,20 @@
-name: Deploy
+name: Manual Deploy
 
 env:
   DIR_WWW_PROD: /var/www/dominik.codeshape.de/prod
   DIR_WWW_STAGE: /var/www/dominik.codeshape.de/stage
 
 on:
-  push:
-    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy, stage or prod'
+        required: true
+        default: 'prod'
+      ref:
+        description: 'The branch, tag or SHA to checkout'
+        required: true
+        default: ''
 
 jobs:
   build:
@@ -15,6 +23,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.inputs.ref }}"
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v2
       with:
@@ -23,7 +33,7 @@ jobs:
     - run: npm run build --if-present
 
   deploy_prod:
-    if: ${{ github.ref == 'refs/heads/master' }}
+    if: ${{ github.event.inputs.environment == 'prod' }}
     runs-on: self-hosted
     needs: [build]
     steps:
@@ -35,7 +45,7 @@ jobs:
 
 
   deploy_stage:
-    if: ${{ github.ref == 'refs/heads/dev' }}
+    if: ${{ github.event.inputs.environment == 'stage' }}
     runs-on: self-hosted
     needs: [build]
     steps:
