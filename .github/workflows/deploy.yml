@@ -20,7 +20,10 @@ jobs:
 
   deploy:
     runs-on: self-hosted
+    needs: [build]
     steps:
-    - name: Check pwd
+    - name: Copy files
       working-directory: build
+      run: cp -r . /var/www/dominik.codeshape.de/prod
+    - name: Check pwd
       run: pwd
