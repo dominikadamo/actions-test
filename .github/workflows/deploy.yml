@@ -110,16 +110,18 @@ jobs:
     if: always()
     steps:
       - name: Set backup filename
-        run: echo "::set-output name=FILENAME::${{ env.DIR_BACKUPS }}/$(date +'%Y-%m-%d-%H-%M-%S').tar.gz"
+        run: |
+          echo "::set-output name=FILENAME::${{ env.DIR_BACKUPS }}/$(date +'%Y-%m-%d-%H-%M-%S').tar.gz"
+          echo "::set-output name=ARTIFACT::$(date +'%Y-%m-%d-%H-%M-%S').tar.gz"
         id: archive-filename
       - if: ${{ github.ref == 'refs/heads/dev' }}
         name: Make archive
-        run: tar zcvf ${{ steps.archive-filename.outputs.FILENAME }} ${{ env.DIR_WWW_STAGE }}
+        run: tar -zcvf ${{ steps.archive-filename.outputs.FILENAME }} ${{ env.DIR_WWW_STAGE }}
       - if: ${{ github.ref == 'refs/heads/master' }}
         name: Make archive
         run: tar zcvf ${{ steps.archive-filename.outputs.FILENAME }} ${{ env.DIR_WWW_PROD }}
       - uses: actions/upload-artifact@v2
         with:
-          name: 'build'
+          name: ${{ steps.archive-filename.outputs.ARTIFACT }}
           path: ${{ steps.archive-filename.outputs.FILENAME }}
         name: Upload artifact
