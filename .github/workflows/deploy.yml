@@ -1,5 +1,9 @@
 name: Deploy
 
+env:
+  DIR_WWW_PROD: /var/www/dominik.codeshape.de/prod
+  DIR_WWW_STAGE: /var/www/dominik.codeshape.de/stage
+
 on:
   push:
     branches: [ master ]
@@ -18,12 +22,50 @@ jobs:
     - run: npm install
     - run: npm run build --if-present
 
-  deploy:
+  deploy_prod:
+    if: ${{ github.ref }} == "refs/heads/master"
     runs-on: self-hosted
     needs: [build]
     steps:
-    - name: Copy files
-      working-directory: build
-      run: cp -r . /var/www/dominik.codeshape.de/prod
-    - name: Check pwd
-      run: pwd
+      - name: Copy files
+        working-directory: build
+        run: cp -r . ${{ DIR_WWW_PROD }}
+      - name: Check pwd
+        run: pwd
+
+
+  deploy_stage:
+    if: ${{ github.ref }} == "refs/heads/dev"
+    runs-on: self-hosted
+    needs: [build]
+    steps:
+      - name: Copy files
+        working-directory: build
+        run: cp -r . ${{ DIR_WWW_STAGE }}
+      - name: Check pwd
+        run: pwd
+
+
+  env_prod:
+    runs-on: self-hosted
+    needs: [deploy_prod]
+    steps:
+      - name: Create env file
+        working-directory: ${{ DIR_WWW_PROD }}
+        run: |
+          touch .env
+          echo NODE_ENV=prod >> .env
+          echo PORT=3010 >> .env
+          cat .env
+
+  env_stage:
+    runs-on: self-hosted
+    needs: [deploy_stage]
+    steps:
+      - name: Create env file
+        working-directory: ${{ DIR_WWW_STAGE }}
+        run: |
+          touch .env
+          echo NODE_ENV=prod >> .env
+          echo PORT=3010 >> .env
+          cat .env
