@@ -87,7 +87,7 @@ jobs:
 
   upload_artifact:
     runs-on: self-hosted
-    needs: [env_stage,env_prod]
+    needs: [build]
     steps:
       - uses: actions/upload-artifact@v2
         with:
