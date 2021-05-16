@@ -110,7 +110,7 @@ jobs:
     if: always()
     steps:
       - name: Set backup filename
-        run: echo '::set-output name=FILENAME::${{ env.DIR_BACKUPS }}/`date +"%y-%m-%d"`.tar.gz'
+        run: echo "::set-output name=FILENAME::${{ env.DIR_BACKUPS }}/$(date +'%Y-%m-%d-%H-%M-%S').tar.gz"
         id: archive-filename
       - if: ${{ github.ref == 'refs/heads/dev' }}
         name: Make archive
