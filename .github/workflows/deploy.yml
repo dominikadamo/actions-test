@@ -7,6 +7,9 @@ env:
 on:
   push:
     branches: [ master ]
+  release:
+    tags:
+      - 'v*'
 
 jobs:
   build:
@@ -21,6 +24,17 @@ jobs:
         node-version: '14.x'
     - run: npm install
     - run: npm run build --if-present
+
+  upload_build:
+    if: ${{ github.ref == *"refs/tags/v"* }}
+    runs-on: self-hosted
+    needs: [build]
+    steps:
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.ref }}
+          path: build/
+        name: Upload artifact
 
   deploy_prod:
     if: ${{ github.ref == 'refs/heads/master' }}
