@@ -64,7 +64,7 @@ jobs:
         working-directory: ${{ env.DIR_WWW_PROD }}
         run: |
           touch .env
-          echo NODE_ENV=prod >> .env
+          echo NODE_ENV=prod > .env
           echo PORT=3010 >> .env
           cat .env
 
@@ -76,6 +76,6 @@ jobs:
         working-directory: ${{ env.DIR_WWW_STAGE }}
         run: |
           touch .env
-          echo NODE_ENV=stage >> .env
+          echo NODE_ENV=stage > .env
           echo PORT=3020 >> .env
           cat .env

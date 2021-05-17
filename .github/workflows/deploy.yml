@@ -3,15 +3,46 @@ name: Deploy
 env:
   DIR_WWW_PROD: /var/www/dominik.codeshape.de/prod
   DIR_WWW_STAGE: /var/www/dominik.codeshape.de/stage
+  DIR_BACKUPS: /var/www/dominik.codeshape.de/backups
 
 on:
   push:
     branches: [ master, dev ]
   release:
+    types: [created]
     tags:
       - 'v*'
 
 jobs:
+
+  one:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+        run: echo "$GITHUB_CONTEXT"
+      - name: Dump job context
+        env:
+          JOB_CONTEXT: ${{ toJSON(job) }}
+        run: echo "$JOB_CONTEXT"
+      - name: Dump steps context
+        env:
+          STEPS_CONTEXT: ${{ toJSON(steps) }}
+        run: echo "$STEPS_CONTEXT"
+      - name: Dump runner context
+        env:
+          RUNNER_CONTEXT: ${{ toJSON(runner) }}
+        run: echo "$RUNNER_CONTEXT"
+      - name: Dump strategy context
+        env:
+          STRATEGY_CONTEXT: ${{ toJSON(strategy) }}
+        run: echo "$STRATEGY_CONTEXT"
+      - name: Dump matrix context
+        env:
+          MATRIX_CONTEXT: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX_CONTEXT"
+
   build:
 
     runs-on: self-hosted
@@ -23,18 +54,20 @@ jobs:
       with:
         node-version: '14.x'
     - run: npm install
-    - run: npm run build --if-present
+    - run: npm -g install lerna
+    - run: lerna bootstrap
+    - run: lerna run build
 
-  upload_build:
+  deploy_version:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: self-hosted
     needs: [build]
     steps:
-      - uses: actions/upload-artifact@v2
-        with:
-          name: ${{ github.ref }}
-          path: build/
-        name: Upload artifact
+      - name: Copy files
+        working-directory: packages/webapp/build
+        run: cp -r . ${{ env.DIR_WWW_PROD }}
+      - name: Check pwd
+        run: pwd
 
   deploy_prod:
     if: ${{ github.ref == 'refs/heads/master' }}
@@ -54,7 +87,7 @@ jobs:
     needs: [build]
     steps:
       - name: Copy files
-        working-directory: build
+        working-directory: packages/webapp/build
         run: cp -r . ${{ env.DIR_WWW_STAGE }}
       - name: Check pwd
         run: pwd
@@ -68,7 +101,7 @@ jobs:
         working-directory: ${{ env.DIR_WWW_PROD }}
         run: |
           touch .env
-          echo NODE_ENV=prod >> .env
+          echo NODE_ENV=prod > .env
           echo PORT=3010 >> .env
           cat .env
 
@@ -80,6 +113,29 @@ jobs:
         working-directory: ${{ env.DIR_WWW_STAGE }}
         run: |
           touch .env
-          echo NODE_ENV=stage >> .env
+          echo NODE_ENV=stage > .env
           echo PORT=3020 >> .env
           cat .env
+
+
+  upload_artifact:
+    runs-on: self-hosted
+    needs: [env_stage,env_prod]
+    if: always()
+    steps:
+      - name: Set backup filename
+        run: |
+          echo "::set-output name=FILENAME::${{ env.DIR_BACKUPS }}/$(date +'%Y-%m-%d-%H-%M-%S').tar.gz"
+          echo "::set-output name=ARTIFACT::$(date +'%Y-%m-%d-%H-%M-%S').tar.gz"
+        id: archive-filename
+      - if: ${{ github.ref == 'refs/heads/dev' }}
+        name: Make archive
+        run: tar -zcvf ${{ steps.archive-filename.outputs.FILENAME }} ${{ env.DIR_WWW_STAGE }}
+      - if: ${{ github.ref == 'refs/heads/master' }}
+        name: Make archive
+        run: tar zcvf ${{ steps.archive-filename.outputs.FILENAME }} ${{ env.DIR_WWW_PROD }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.archive-filename.outputs.ARTIFACT }}
+          path: ${{ steps.archive-filename.outputs.FILENAME }}
+        name: Upload artifact
