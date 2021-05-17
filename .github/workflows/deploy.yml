@@ -54,7 +54,7 @@ jobs:
         node-version: '14.x'
     - run: npm install
     - run: npm -g install lerna
-    - run: lerna run build --if-present
+    - run: lerna run build
 
   deploy_prod:
     if: ${{ github.ref == 'refs/heads/master' }}
